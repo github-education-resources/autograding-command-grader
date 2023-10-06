@@ -1,0 +1,24 @@
+name: "GitHub Classroom Autograding Run Command Runner"
+author: "GitHub"
+description: "Integrate your CS class wit GitHub using GitHub Classroom"
+inputs:
+  test-name:
+    description: "Name for test"
+    required: true
+  setup-command:
+    description: "Command to run before running test"
+    required: false
+  command:
+    description: "Command to run. Zero exit code grants points"
+    required: true
+  timeout:
+    description: "The amount of minutes the test is allowed to run before it is killed. Maximum 60 minutes."
+    default: "10"
+    required: false
+outputs:
+  result:
+    description: "Runner output"
+
+runs:
+  using: 'node20'
+  main: 'src/index.js'
