@@ -9,13 +9,14 @@ async function run() {
     const command = core.getInput('command', {
         required: true
     });
-    const timeoutStr = core.getInput('timeout');
-    const timeout = timeoutStr ? parseInt(timeoutStr) * 1000 : undefined;
+
+    const timeout = parseFloat(core.getInput('timeout')) * 60000; // Convert to ms
 
     console.log(`Running test: ${testName}`);
 
     let myOutput = '';
     let myError = '';
+    let startTime;
 
     try {
         if (setupCommand) {
@@ -34,6 +35,7 @@ async function run() {
 
         console.log(`Running command: ${command}`);
         const options = {};
+        startTime = new Date();
         options.listeners = {
             stdout: (data) => {
                 myOutput += data.toString();
@@ -54,29 +56,40 @@ async function run() {
             await execPromise;
         }
 
+        const endTime = new Date();
         const result = {
+            version: 1,
             status: myError ? 'fail' : 'pass',
-            message: myError || myOutput,
             tests: [{
                 name: testName,
                 status: myError ? 'fail' : 'pass',
-                message: myError || myOutput
+                message: myError || myOutput,
+                test_code: `${command}`,
+                filename: "",
+                line_no: 0,
+                duration: endTime - startTime
             }]
-        };
+        }
 
-        core.setOutput('result', JSON.stringify(result));
+        core.setOutput('result', btoa(JSON.stringify(result)));
     } catch (error) {
         // Handle any error that occurs during the execution of the action
+        const endTime = new Date();
         const result = {
+            version: 1,
             status: 'fail',
-            message: myError || error.message, // Include stderr in the message
             tests: [{
                 name: testName,
                 status: 'fail',
-                message: myError || error.message // Include stderr in the message
+                message: myError || error.message,
+                test_code: `${command}`,
+                filename: "",
+                line_no: 0,
+                duration: endTime - startTime
             }]
-        };
-        core.setOutput('result', JSON.stringify(result));
+        }
+
+        core.setOutput('result', btoa(JSON.stringify(result)));
     }
 }
 
