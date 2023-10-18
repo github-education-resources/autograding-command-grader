@@ -4,36 +4,65 @@ const path = require('path');
 
 const np = process.execPath;
 const ip = path.join(__dirname, '..', 'src', 'main.js');
-const options = {
-    env: process.env,
-    encoding: 'utf-8'
-};
 
-test('test runs', () => {
-    process.env['INPUT_TEST-NAME'] = 'Test 1';
-    process.env['INPUT_COMMAND'] = 'echo Hello, World!';
-    process.env['INPUT_TIMEOUT'] = '5'; //minutes
+function runTestWithEnv(env) {
+    const options = {
+        env: {
+            ...process.env,
+            ...env
+        },
+        encoding: 'utf-8'
+    };
     const child = cp.spawnSync(np, [ip], options);
     const stdout = child.stdout.toString();
     const encodedResult = stdout.split('::set-output name=result::')[1].trim();
+    return JSON.parse(atob(encodedResult));
+}
 
-    const result = JSON.parse(atob(encodedResult));
+function atob(str) {
+    return Buffer.from(str, 'base64').toString('utf8');
+}
 
-    // Asserting on specific properties of the result
+test('test runs', () => {
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 1',
+        'INPUT_COMMAND': 'echo Hello, World!',
+        'INPUT_TIMEOUT': '5'
+    });
+
     expect(result.status).toBe('pass');
     expect(result.tests[0].name).toBe('Test 1');
     expect(result.tests[0].status).toBe('pass');
     expect(result.tests[0].message).toContain('Hello, World!\n');
 });
 
+
+test('awards score if provided', () => {
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 1',
+        'INPUT_COMMAND': 'echo Hello, World!',
+        'INPUT_MAX-SCORE': '100'
+    });
+
+    expect(result.max_score).toBe(100);
+    expect(result.tests[0].score).toBe(100);
+});
+
+test('falls back to 0 points if none provided', () => {
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 1',
+        'INPUT_COMMAND': 'echo Hello, World!',
+    });
+
+    expect(result.max_score).toBe(0);
+    expect(result.tests[0].score).toBe(0);
+});
+
 test('test fails on bad logic', () => {
-    process.env['INPUT_TEST-NAME'] = 'Test 2';
-    process.env['INPUT_COMMAND'] = 'node -e "process.exit(1);"';
-    process.env['INPUT_TIMEOUT'] = '5'; //minutes
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 2',
+        'INPUT_COMMAND': 'node -e "process.exit(1);"',
+    });
 
     expect(result.status).toBe('fail');
     expect(result.tests[0].name).toBe('Test 2');
@@ -41,14 +70,22 @@ test('test fails on bad logic', () => {
     expect(result.tests[0].message).toContain('failed with exit code 1');
 });
 
+test('awards no points if test fails', () => {
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 2',
+        'INPUT_COMMAND': 'node -e "process.exit(1);"',
+        'INPUT_MAX-SCORE': '100'
+    });
+
+    expect(result.max_score).toBe(100);
+    expect(result.tests[0].score).toBe(0);
+});
+
 test('test fails on bad code', () => {
-    process.env['INPUT_TEST-NAME'] = 'Test 3';
-    process.env['INPUT_COMMAND'] = 'node -e "console.log(a);"';
-    process.env['INPUT_TIMEOUT'] = '5'; //minutes
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 3',
+        'INPUT_COMMAND': 'node -e "console.log(a);"',
+    });
 
     // Asserting on specific properties of the result
     expect(result.status).toBe('fail');
@@ -58,13 +95,10 @@ test('test fails on bad code', () => {
 });
 
 test('test fails on non-existent executable', () => {
-    process.env['INPUT_TEST-NAME'] = 'Test 4';
-    process.env['INPUT_COMMAND'] = 'nonexistentcommand';
-    process.env['INPUT_TIMEOUT'] = '5'; //minutes
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Test 4',
+        'INPUT_COMMAND': 'nonexistentcommand',
+    });
 
     expect(result.status).toBe('fail');
     expect(result.tests[0].name).toBe('Test 4');
@@ -73,13 +107,11 @@ test('test fails on non-existent executable', () => {
 });
 
 test('test fails on command timeout', () => {
-    process.env['INPUT_TEST-NAME'] = 'Timeout Test';
-    process.env['INPUT_COMMAND'] = 'sleep 3';
-    process.env['INPUT_TIMEOUT'] = '0.01'; // ~ 1 second
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Timeout Test',
+        'INPUT_COMMAND': 'sleep 3',
+        'INPUT_TIMEOUT': '0.01' // ~ 1 second
+    });
 
     expect(result.status).toBe('fail');
     expect(result.tests[0].name).toBe('Timeout Test');
@@ -88,13 +120,11 @@ test('test fails on command timeout', () => {
 });
 
 test('test passes when command completes before timeout', () => {
-    process.env['INPUT_TEST-NAME'] = 'Timeout Success Test';
-    process.env['INPUT_COMMAND'] = 'sleep 2';
-    process.env['INPUT_TIMEOUT'] = '5'; //minutes
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Timeout Success Test',
+        'INPUT_COMMAND': 'sleep 1',
+        'INPUT_TIMEOUT': '5' //minutes
+    });
 
     expect(result.status).toBe('pass');
     expect(result.tests[0].name).toBe('Timeout Success Test');
@@ -102,21 +132,15 @@ test('test passes when command completes before timeout', () => {
 });
 
 test('test fails on setup command timeout', () => {
-    process.env['INPUT_TEST-NAME'] = 'Setup Timeout Test';
-    process.env['INPUT_SETUP-COMMAND'] = 'sleep 3';
-    process.env['INPUT_COMMAND'] = 'echo Hello, World!';
-    process.env['INPUT_TIMEOUT'] = '0.01'; // ~ 1 second
-    const child = cp.spawnSync(np, [ip], options);
-    const stdout = child.stdout.toString();
-    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
-    const result = JSON.parse(atob(encodedResult));
+    const result = runTestWithEnv({
+        'INPUT_TEST-NAME': 'Setup Timeout Test',
+        'INPUT_SETUP-COMMAND': 'sleep 3',
+        'INPUT_COMMAND': 'echo Hello, World!',
+        'INPUT_TIMEOUT': '0.01' // ~ 1 second
+    });
 
     expect(result.status).toBe('fail');
     expect(result.tests[0].name).toBe('Setup Timeout Test');
     expect(result.tests[0].status).toBe('fail');
     expect(result.tests[0].message).toContain('Command timed out');
 });
-
-function atob(str) {
-    return Buffer.from(str, 'base64').toString('utf8');
-}
