@@ -15,6 +15,9 @@ inputs:
     description: "The amount of minutes the test is allowed to run before it is killed. Maximum 6 hours."
     default: "10"
     required: false
+  max-score:
+    description: "Points to be awarded if test passes."
+    required: false
 outputs:
   result:
     description: "Runner output"

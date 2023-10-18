@@ -26,6 +26,35 @@ test('test runs', () => {
     expect(result.tests[0].message).toContain('Hello, World!\n');
 });
 
+test('awards score if provided', () => {
+    process.env['INPUT_TEST-NAME'] = 'Test 1';
+    process.env['INPUT_COMMAND'] = 'echo Hello, World!';
+    process.env['INPUT_TIMEOUT'] = '5'; //minutes
+    process.env['INPUT_MAX-SCORE'] = '100';
+    const child = cp.spawnSync(np, [ip], options);
+    const stdout = child.stdout.toString();
+    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
+
+    const result = JSON.parse(atob(encodedResult));
+
+    expect(result.max_score).toBe(100);
+    expect(result.tests[0].score).toBe(100);
+});
+
+test('falls back to 0 points if none provided', () => {
+    process.env['INPUT_TEST-NAME'] = 'Test 1';
+    process.env['INPUT_COMMAND'] = 'echo Hello, World!';
+    process.env['INPUT_TIMEOUT'] = '5'; //minutes
+    const child = cp.spawnSync(np, [ip], options);
+    const stdout = child.stdout.toString();
+    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
+
+    const result = JSON.parse(atob(encodedResult));
+
+    expect(result.max_score).toBe(0);
+    expect(result.tests[0].score).toBe(0);
+});
+
 test('test fails on bad logic', () => {
     process.env['INPUT_TEST-NAME'] = 'Test 2';
     process.env['INPUT_COMMAND'] = 'node -e "process.exit(1);"';
@@ -39,6 +68,20 @@ test('test fails on bad logic', () => {
     expect(result.tests[0].name).toBe('Test 2');
     expect(result.tests[0].status).toBe('fail');
     expect(result.tests[0].message).toContain('failed with exit code 1');
+});
+
+test('awards no points if test fails', () => {
+    process.env['INPUT_TEST-NAME'] = 'Test 2';
+    process.env['INPUT_COMMAND'] = 'node -e "process.exit(1);"';
+    process.env['INPUT_TIMEOUT'] = '5'; //minutes
+    process.env['INPUT_MAX-SCORE'] = '100';
+    const child = cp.spawnSync(np, [ip], options);
+    const stdout = child.stdout.toString();
+    const encodedResult = stdout.split('::set-output name=result::')[1].trim();
+    const result = JSON.parse(atob(encodedResult));
+
+    expect(result.max_score).toBe(100);
+    expect(result.tests[0].score).toBe(0);
 });
 
 test('test fails on bad code', () => {

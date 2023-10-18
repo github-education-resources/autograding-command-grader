@@ -8,15 +8,12 @@ function btoa(str) {
 }
 
 function run() {
-    const testName = core.getInput('test-name', {
-        required: true
-    });
+    const testName = core.getInput('test-name', { required: true });
     const setupCommand = core.getInput('setup-command');
-    const command = core.getInput('command', {
-        required: true
-    });
+    const command = core.getInput('command', { required: true });
 
     const timeout = parseFloat(core.getInput('timeout')) * 60000; // Convert to ms
+    const maxScore = parseInt(core.getInput('max-score') || 0);
 
     let myOutput = '';
     let startTime;
@@ -37,9 +34,11 @@ function run() {
         const result = {
             version: 1,
             status: 'pass',
+            max_score: maxScore,
             tests: [{
                 name: testName,
                 status: 'pass',
+                score: maxScore,
                 message: myOutput,
                 test_code: `${command}`,
                 filename: "",
@@ -64,9 +63,11 @@ function run() {
         const result = {
             version: 1,
             status: 'fail',
+            max_score: maxScore,
             tests: [{
                 name: testName,
                 status: 'fail',
+                score: 0,
                 message: message,
                 test_code: `${command}`,
                 filename: "",
