@@ -1,27 +1,27 @@
-name: "GitHub Classroom Autograding Run Command Runner"
+name: "GitHub Classroom Command Grader"
 author: "GitHub"
-description: "Integrate your CS class wit GitHub using GitHub Classroom"
+description: "A plugin for GitHub Classroom's Autograder. Seamlessly integrate your CS class with GitHub using this action to facilitate the grading process."
 inputs:
   test-name:
-    description: "Name for test."
+    description: "The unique identifier for the test."
     required: true
   setup-command:
-    description: "Command to run before running test."
+    description: "Command to execute prior to the test, typically for environment setup or dependency installation."
     required: false
   command:
-    description: "Command to run. A zero exit code indicates success."
+    description: "Primary command to run for the test. A zero exit code signifies a successful test."
     required: true
   timeout:
-    description: "The amount of minutes the test is allowed to run before it is killed. Maximum 6 hours."
+    description: "Duration (in minutes) before the test is terminated. Defaults to 10 minutes with a maximum limit of 6 hours."
     default: "10"
     required: false
   max-score:
-    description: "Points to be awarded if test passes."
+    description: "Maximum points awarded upon a successful test."
     required: false
 outputs:
   result:
-    description: "Runner output"
-
+    description: "Outputs the result of the grader, indicating the success or failure of the test."
 runs:
   using: 'node20'
   main: 'src/main.js'
+
