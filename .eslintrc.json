@@ -5,9 +5,7 @@
     "es2021": true,
     "jest": true
   },
-  "plugins": [
-    "prettier"
-  ],
+  "plugins": ["prettier"],
   "extends": [
     "eslint:recommended",
     "plugin:prettier/recommended",
