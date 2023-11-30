@@ -114,9 +114,9 @@ test('test fails on non-existent executable', () => {
     INPUT_COMMAND: 'nonexistentcommand',
   })
 
-  expect(result.status).toBe('fail')
+  expect(result.status).toBe('error')
   expect(result.tests[0].name).toBe('Test 4')
-  expect(result.tests[0].status).toBe('fail')
+  expect(result.tests[0].status).toBe('error')
   expect(result.tests[0].message).toContain('Unable to locate executable file: nonexistentcommand')
 })
 
@@ -127,9 +127,9 @@ test('test fails on command timeout', () => {
     INPUT_TIMEOUT: '0.01', // ~ 1 second
   })
 
-  expect(result.status).toBe('fail')
+  expect(result.status).toBe('error')
   expect(result.tests[0].name).toBe('Timeout Test')
-  expect(result.tests[0].status).toBe('fail')
+  expect(result.tests[0].status).toBe('error')
   expect(result.tests[0].message).toContain('Command timed out')
 })
 
@@ -153,8 +153,19 @@ test('test fails on setup command timeout', () => {
     INPUT_TIMEOUT: '0.01', // ~ 1 second
   })
 
-  expect(result.status).toBe('fail')
+  expect(result.status).toBe('error')
   expect(result.tests[0].name).toBe('Setup Timeout Test')
-  expect(result.tests[0].status).toBe('fail')
+  expect(result.tests[0].status).toBe('error')
   expect(result.tests[0].message).toContain('Command timed out')
+})
+
+test('awards no points if test errors', () => {
+  const result = runTestWithEnv({
+    'INPUT_TEST-NAME': 'Test 4',
+    INPUT_COMMAND: 'nonexistentcommand',
+    'INPUT_MAX-SCORE': '100',
+  })
+
+  expect(result.max_score).toBe(100)
+  expect(result.tests[0].score).toBe(0)
 })

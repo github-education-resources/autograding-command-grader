@@ -33,17 +33,17 @@ function generateResult(status, testName, command, message, duration, maxScore) 
   }
 }
 
-function getErrorMessage(error, command) {
+function getErrorMessageAndStatus(error, command) {
   if (error.message.includes('ETIMEDOUT')) {
-    return 'Command timed out'
+    return { status: 'error', errorMessage: 'Command timed out' }
   }
   if (error.message.includes('command not found')) {
-    return `Unable to locate executable file: ${command}`
+    return { status: 'error', errorMessage: `Unable to locate executable file: ${command}` }
   }
   if (error.message.includes('Command failed')) {
-    return 'failed with exit code 1'
+    return { status: 'fail', errorMessage: 'failed with exit code 1' }
   }
-  return error.message
+  return  { status: 'error', errorMessage: error.message }
 }
 
 function run() {
@@ -70,8 +70,8 @@ function run() {
     result = generateResult('pass', testName, command, output, endTime - startTime, maxScore)
   } catch (error) {
     endTime = new Date()
-    const errorMessage = getErrorMessage(error, command)
-    result = generateResult('fail', testName, command, errorMessage, endTime - startTime, maxScore)
+    const {status, errorMessage} = getErrorMessageAndStatus(error, command)
+    result = generateResult(status, testName, command, errorMessage, endTime - startTime, maxScore)
   }
 
   core.setOutput('result', btoa(JSON.stringify(result)))
