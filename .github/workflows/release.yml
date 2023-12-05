@@ -26,9 +26,3 @@ jobs:
         run: |
           git tag -f v1 v1
           git push origin v1 --force
-      - name: Create Release
-        id: create_release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: v1
-          allowUpdates: true
