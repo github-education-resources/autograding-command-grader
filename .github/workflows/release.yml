@@ -26,3 +26,9 @@ jobs:
         run: |
           git tag -f v1 # Since we are already on releases/v1 we don't need a ref. This will tag HEAD of releases/v1.
           git push origin v1 --force
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v1
+          allowUpdates: true
