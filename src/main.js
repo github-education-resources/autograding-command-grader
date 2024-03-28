@@ -52,7 +52,7 @@ function run() {
   const command = core.getInput('command', {required: true})
   const timeout = parseFloat(core.getInput('timeout') || 10) * 60000 // Convert to minutes
   const maxScore = parseInt(core.getInput('max-score') || 0)
-  const flushStdio = parseInt(core.getInput('flush-stdio') || true)  // flush stdio (use 'inherit')
+  const flushStdio = parseInt(core.getInput('flush-stdio') || 1)  // 1: default (use 'inherit'); 0: legacy (use 'pipe')
 
   let output = ''
   let startTime
@@ -65,7 +65,7 @@ function run() {
     }
 
     startTime = new Date()
-    if(flushStdio) {
+    if(flushStdio == 1) {
        output = execSync(command, {timeout, env, stdio: 'inherit'})?.toString()
     } else {
        output = execSync(command, {timeout, env}).toString()
