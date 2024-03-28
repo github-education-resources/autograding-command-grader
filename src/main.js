@@ -52,6 +52,7 @@ function run() {
   const command = core.getInput('command', {required: true})
   const timeout = parseFloat(core.getInput('timeout') || 10) * 60000 // Convert to minutes
   const maxScore = parseInt(core.getInput('max-score') || 0)
+  const flushStdio = parseInt(core.getInput('flush-stdio') || true)  // flush stdio (use 'inherit')
 
   let output = ''
   let startTime
@@ -64,7 +65,11 @@ function run() {
     }
 
     startTime = new Date()
-    output = execSync(command, {timeout, env, stdio: 'inherit'})?.toString()
+    if(flushStdio) {
+       output = execSync(command, {timeout, env, stdio: 'inherit'})?.toString()
+    } else {
+       output = execSync(command, {timeout, env}).toString()
+    }
     endTime = new Date()
 
     result = generateResult('pass', testName, command, output, endTime - startTime, maxScore)
